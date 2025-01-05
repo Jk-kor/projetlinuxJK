@@ -111,6 +111,117 @@ sudo systemctl status minecraft
 
 Le serveur démarrera automatiquement après un redémarrage.
 
+#### 1. Installation de Java
+Le serveur Minecraft fonctionne avec Java, donc Java doit être installé. Installez Java d'abord.
+```bash
+sudo dnf install java-17-openjdk
+```
+
+Java 17 ou une version ultérieure est nécessaire, vérifiez et installez :
+```bash
+java -version
+```
+
+#### 2. Téléchargement du serveur Minecraft
+Téléchargez le fichier JAR de la dernière version du serveur Minecraft.
+```bash
+wget https://launcher.mojang.com/v1/objects/1e563f68a3d88d602163ef342e5e9889fc2059bb/server.jar -O minecraft_server.jar
+```
+
+#### 3. Préparation du fichier d'exécution du serveur
+Pour exécuter le serveur, créez un script start.sh pour faciliter le démarrage du serveur.
+```bash
+nano start.sh
+```
+
+Entrez le contenu suivant dans le fichier start.sh :
+```bash
+#!/bin/bash
+java -Xmx2G -Xms1G -jar minecraft_server.jar nogui
+```
+
+#### 4. Attribution des droits d'exécution
+Donnez les droits d'exécution au fichier start.sh.
+```bash
+chmod +x start.sh
+```
+
+#### 5. Démarrage du serveur
+Pour démarrer le serveur, exécutez le fichier start.sh.
+```bash
+./start.sh
+```
+
+Lors du premier démarrage, un message demandant de créer le fichier eula.txt apparaîtra. Ouvrez le fichier eula.txt et changez l'option EULA en true.
+```bash
+nano eula.txt
+```
+
+Ouvrez le fichier et changez eula=false en eula=true, puis enregistrez.
+
+#### 6. Démarrage du serveur
+Vous pouvez maintenant redémarrer le script start.sh pour démarrer le serveur :
+```bash
+./start.sh
+```
+
+Une fois le serveur démarré correctement, vous pouvez vous connecter au serveur via le client Minecraft.
+
+#### 7. Ouverture du port (configuration du pare-feu)
+Pour permettre les connexions externes au serveur, ouvrez le port utilisé par Minecraft, par défaut 25565. Ouvrez ce port dans le pare-feu.
+```bash
+sudo firewall-cmd --zone=public --add-port=25565/tcp --permanent
+sudo firewall-cmd --reload
+```
+
+#### 8. Configuration du serveur
+Après le démarrage du serveur, vous pouvez ajuster plusieurs paramètres dans le fichier server.properties. Ouvrez ce fichier pour modifier l'IP, le port, le mode du serveur, etc.
+```bash
+nano server.properties
+```
+
+#### 9. Configuration du démarrage automatique (optionnel)
+Pour démarrer automatiquement le serveur après un redémarrage, vous pouvez configurer un service systemd.
+
+Création du fichier de service :
+```bash
+sudo nano /etc/systemd/system/minecraft.service
+```
+
+Contenu du fichier de service :
+```ini
+[Unit]
+Description=Minecraft Server
+After=network.target
+
+[Service]
+User=youruser
+WorkingDirectory=/path/to/your/minecraft/server
+ExecStart=/path/to/your/minecraft/server/start.sh
+Restart=always
+RestartSec=10s
+TimeoutStopSec=20s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Remplacez youruser par l'utilisateur qui exécutera le serveur, et modifiez les chemins de WorkingDirectory et ExecStart avec le répertoire où se trouve le serveur Minecraft.
+
+Application du fichier de service et démarrage du serveur :
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable minecraft
+sudo systemctl start minecraft
+```
+
+Vérification de l'état du serveur :
+```bash
+sudo systemctl status minecraft
+```
+
+Le serveur démarrera automatiquement après un redémarrage.
+
 #### 10. Arrêt du serveur Minecraft
 Pour arrêter le serveur, entrez la commande stop :
 ```bash
@@ -346,3 +457,157 @@ Vérifiez que cela fonctionne :
 su - jin
 sudo ls /root
 ```
+-----------------------------------------------
+# site web
+
+
+## Emplacement du fichier de log start.sh
+
+Vérifiez que le chemin du fichier de log est correct. Assurez-vous que le chemin `LOG_FILE` (`/var/log/start.sh`) correspond bien au fichier où les logs du serveur Minecraft sont enregistrés.
+
+## Problème de permissions
+
+Assurez-vous que le fichier `perstente.txt` a les permissions nécessaires pour être écrit. Si ce n'est pas le cas, utilisez la commande suivante pour changer les permissions :
+```bash
+sudo chmod 666 perstente.txt
+```
+
+## Vérification de la commande `tail -f`
+
+Assurez-vous que la commande `tail -f $LOG_FILE` fonctionne correctement. Cette commande affiche les nouvelles lignes ajoutées au fichier de log. Si le fichier de log ne contient pas de nouvelles lignes, rien ne sera affiché. Vérifiez que les logs sont correctement générés.
+
+## Vérification de l'exécution du script
+
+Vous pouvez exécuter le `script.sh` en arrière-plan en utilisant `nohup` pour qu'il continue de fonctionner même après la fermeture du terminal :
+```bash
+sudo nohup ./script.sh &
+```
+
+## Emplacement du fichier `perstente.txt`
+
+Vérifiez que le fichier `perstente.txt` est bien créé dans le répertoire de travail actuel. Le `script.sh` étant exécuté dans le répertoire `quiatente`, le fichier `perstente.txt` sera également créé à cet emplacement. Utilisez la commande `ls` pour vérifier la création du fichier.
+
+## Vérification finale
+
+```bash
+sudo iptables -A INPUT -p tcp --dport 25565 -j LOG --log-prefix "Minecraft connection attempt: " --log-level 4
+```
+
+## Sécurisation du serveur SSH
+
+### 1. Modifier le fichier de configuration SSH
+
+Ouvrez le fichier de configuration SSH :
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+Trouvez ou ajoutez la ligne suivante :
+```plaintext
+PermitRootLogin no
+```
+Explication : `PermitRootLogin no` empêche les connexions SSH avec le compte root. Enregistrez les modifications et fermez le fichier (Ctrl + O → Entrée → Ctrl + X).
+
+### 2. Redémarrer le service SSH
+
+Redémarrez le service SSH pour appliquer les modifications :
+```bash
+sudo systemctl restart sshd
+```
+
+### 3. Désactiver complètement le compte root (optionnel)
+
+Pour verrouiller complètement le compte root, exécutez cette commande :
+```bash
+sudo passwd -l root
+```
+Explication : Cette commande verrouille le mot de passe du compte root, empêchant ainsi toute connexion avec ce compte.
+
+### 4. Tester la configuration
+
+Essayez de vous connecter avec le compte root via SSH :
+```bash
+ssh root@IP_du_serveur
+```
+Résultat attendu : Un message d'interdiction de connexion doit apparaître. Connectez-vous à la place avec le compte `jin` :
+```bash
+ssh jin@IP_du_serveur
+```
+Entrez le mot de passe du compte `jin` pour accéder au serveur.
+
+### 5. Ajouter des privilèges sudo au compte jin (si nécessaire)
+
+Pour permettre à l’utilisateur `jin` d’exécuter des commandes avec des droits d’administration, ajoutez-le au groupe `sudo` :
+```bash
+sudo usermod -aG sudo jin
+```
+Vérifiez que cela fonctionne :
+```bash
+su - jin
+sudo ls /root
+```
+
+## Installation des bibliothèques nécessaires
+
+Tout d'abord, nous devons installer les bibliothèques nécessaires pour Flask et pour vérifier l'état du serveur Minecraft.
+
+- **flask** : Bibliothèque pour créer un serveur web avec Flask
+- **mcstatus** : Bibliothèque pour vérifier l'état du serveur Minecraft
+
+### Installation des bibliothèques
+
+```bash
+pip install flask mcstatus
+```
+
+## Configuration de l'application Flask
+
+Créez un fichier `server.py` pour configurer le serveur web et écrire une API qui vérifie l'état du serveur Minecraft.
+
+### Exemple de code `server.py`
+
+```python
+from flask import Flask
+from mcstatus import MinecraftServer
+
+# Création de l'instance de l'application Flask
+app = Flask(__name__)
+
+# Fonction pour récupérer l'état du serveur Minecraft
+def get_minecraft_status():
+    try:
+        # Entrer l'IP et le port du serveur Minecraft (ex. "127.0.0.1:25565" ou autre adresse)
+        server = MinecraftServer.lookup("127.0.0.1:25565")  # Remplacer par l'adresse de votre serveur Minecraft
+        status = server.status()
+        # Retourne l'état du serveur et le nombre de joueurs en ligne
+        return f"État du serveur : {status.players.online} joueurs en ligne"
+    except Exception as e:
+        return f"Erreur lors de la récupération de l'état du serveur : {e}"
+
+# Affichage de l'état du serveur à la racine du web
+@app.route('/')
+def index():
+    server_info = get_minecraft_status()
+    return f"<h1>État du serveur Minecraft</h1><p>{server_info}</p>"
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)  # Permet d'accéder depuis toutes les IPs
+```
+
+### Exécution de l'application Flask
+
+Enregistrez le code ci-dessus dans un fichier appelé `server.py`, puis exécutez l'application Flask à l'aide de la commande suivante dans le terminal :
+
+```bash
+python3 server.py
+```
+
+Une fois exécuté, vous pouvez accéder à l'état du serveur Minecraft dans votre navigateur en visitant l'URL suivante :
+```
+http://<IP_du_serveur>:5000
+```
+
+### Informations sur l'état du serveur Minecraft
+
+Dans le code ci-dessus, l'IP du serveur Minecraft et son port sont définis sur `127.0.0.1:25565`. Assurez-vous de les modifier avec l'IP et le port de votre propre serveur.
+
+La méthode `server.status()` est utilisée pour récupérer l'état du serveur. Vous pouvez vérifier le nombre de joueurs en ligne avec `status.players.online`.
